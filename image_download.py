@@ -2,7 +2,8 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 import os
 import json
-import urllib2
+import requests
+import shutil
 import sys
 import time
 
@@ -29,8 +30,8 @@ def main():
 	img_count = 0
 	downloaded_img_count = 0
 	
-	for _ in xrange(number_of_scrolls):
-		for __ in xrange(10):
+	for _ in range(int(number_of_scrolls)):
+		for __ in range(10):
 			# multiple scrolls needed to show all 400 images
 			driver.execute_script("window.scrollBy(0, 1000000)")
 			time.sleep(0.2)
@@ -39,34 +40,36 @@ def main():
 		try:
 			driver.find_element_by_xpath("//input[@value='Show more results']").click()
 		except Exception as e:
-			print "Less images found:", e
+			print ("Less images found:", e)
 			break
 
 	# imges = driver.find_elements_by_xpath('//div[@class="rg_meta"]') # not working anymore
 	imges = driver.find_elements_by_xpath('//div[contains(@class,"rg_meta")]')
-	print "Total images:", len(imges), "\n"
+	print ("Total images:", len(imges), "\n")
 	for img in imges:
 		img_count += 1
 		img_url = json.loads(img.get_attribute('innerHTML'))["ou"]
 		img_type = json.loads(img.get_attribute('innerHTML'))["ity"]
-		print "Downloading image", img_count, ": ", img_url
+		print ("Downloading image", img_count, ": ", img_url)
 		try:
 			if img_type not in extensions:
 				img_type = "jpg"
-			req = urllib2.Request(img_url, headers=headers)
-			raw_img = urllib2.urlopen(req).read()
-			f = open(download_path+searchtext.replace(" ", "_")+"/"+str(downloaded_img_count)+"."+img_type, "wb")
-			f.write(raw_img)
-			f.close
+
+			r = requests.get(img_url, stream=True, headers=headers)
+			if r.status_code == 200:
+				with open(download_path+searchtext.replace(" ", "_")+"/"+str(downloaded_img_count)+"."+img_type, "wb") as f:
+					r.raw.decode_content = True
+					shutil.copyfileobj(r.raw, f)
+					
 			downloaded_img_count += 1
 		except Exception as e:
-			print "Download failed:", e
+			print ("Download failed:", e)
 		finally:
-			print
+			print('')
 		if downloaded_img_count >= num_requested:
 			break
 
-	print "Total downloaded: ", downloaded_img_count, "/", img_count
+	print ("Total downloaded: ", downloaded_img_count, "/", img_count)
 	driver.quit()
 
 if __name__ == "__main__":
