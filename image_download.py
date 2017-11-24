@@ -54,7 +54,7 @@ def main():
 		try:
 			if img_type not in extensions: img_type = "jpg"
 
-			r = requests.get(img_url, stream=True, headers=headers)
+			r = requests.get(img_url, stream=True, headers=headers, timeout=5)
 			if r.status_code == 200:
 				with open(download_path + searchtext.replace(" ", "_") + "/" + str(downloaded_img_count) + "." + img_type, "wb") as f:
 					r.raw.decode_content = True
